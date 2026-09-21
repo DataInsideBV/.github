@@ -1,0 +1,39 @@
+# Plaats dit bestand in: DataInside/.github  →  .github/workflows/trivy-scan.yml
+#
+# Dit is de HERBRUIKBARE workflow. Hij draait nooit vanzelf — hij wordt
+# aangeroepen door het stub-bestand (security-scan.yml) in elke losse repo.
+# Werkt voor Laravel/PHP (composer.lock) én Python (requirements.txt,
+# poetry.lock, Pipfile.lock) zonder aanpassing, want Trivy leest de
+# lock-files, niet de taal zelf.
+
+name: Trivy Security Scan (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      severity:
+        description: "Comma-separated severities om te rapporteren"
+        type: string
+        default: "MEDIUM,HIGH,CRITICAL"
+      scan-path:
+        description: "Pad binnen de repo dat gescand moet worden"
+        type: string
+        default: "."
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: ${{ inputs.scan-path }}
+          severity: ${{ inputs.severity }}
+          skip-dirs: "vendor,node_modules,.git"
+          exit-code: "0"        # nooit falen — puur rapporteren in de log
+          format: "table"       # leesbare tabel, geen SARIF nodig
+          ignore-unfixed: false # ook tonen als er nog geen fix is (informatief)
